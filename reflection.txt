@@ -1,0 +1,22 @@
+Reflection Report
+
+Architecture and Workflow
+The system is about Orchestrating agens with three unique agents: Inventory, Quote, and Sales. The orchestrator routes requests while each agent handles domain-specific tasks, like stock checks, quote generation, or transaction recording. The workflow diagram illustrates request routing and database interactions.
+
+Implementation and Evaluation
+
+Implemented in Python using SmolAgents, each agent tool is docstring-annotated for schema validation, and SQLite provides persistent storage. Evaluation from test_results.csv highlights:
+
+-  Agents consistently return correct results.
+
+- Database queries respond quickly.
+
+- New tools or agents integrate with minimal changes.
+
+
+Suggestions for Improvement
+
+Took about 4 minutes to texecute everything, i would recommend better algorithims or better way to orchestrate the agents. 
+
+Conclusion:
+The system is a reliable multi-agent coordination with the basic uses of different agents and tools. Further enhancements could improve performance for larger deployments.
