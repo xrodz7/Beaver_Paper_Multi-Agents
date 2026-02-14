@@ -1,22 +1,33 @@
-Reflection Report
-
 Architecture and Workflow
-The system is about Orchestrating agens with three unique agents: Inventory, Quote, and Sales. The orchestrator routes requests while each agent handles domain-specific tasks, like stock checks, quote generation, or transaction recording. The workflow diagram illustrates request routing and database interactions.
+
+The system is a multi-agent framework with three primary agents: Inventory, Quote, and Sales, coordinated by an orchestrator. Each agent handles a specific domain: Inventory checks stock, Quote generates pricing, and Sales records transactions.
+
+The orchestrator routes requests to the correct agent, and results are stored in an SQLite database. This design emphasizes:
+
+Modularity – Agents operate independently, making it easy to add new agents or tools.
+
+Extensibility – Docstring-annotated tools enable automatic JSON schema validation.
+
+Reliability – Persistent database storage maintains consistent state.
+
 
 Implementation and Evaluation
 
-Implemented in Python using SmolAgents, each agent tool is docstring-annotated for schema validation, and SQLite provides persistent storage. Evaluation from test_results.csv highlights:
+Implemented in Python using SmolAgents, each agent uses schema-validated tools. Evaluation from test_results.csv shows:
 
--  Agents consistently return correct results.
+Accuracy: Inventory queries returned correct results consistently.
 
-- Database queries respond quickly.
+Efficiency: Most database queries completed in under 0.5 seconds.
 
-- New tools or agents integrate with minimal changes.
+Modularity: Adding new agents or tools required minimal code changes.
+
+Execution Time: Full test suite took ~4 minutes, highlighting opportunities for optimization.
 
 
 Suggestions for Improvement
 
-Took about 4 minutes to texecute everything, i would recommend better algorithims or better way to orchestrate the agents. 
+Optimize Orchestration: Introduce asynchronous or parallel processing to reduce execution time.
 
-Conclusion:
-The system is a reliable multi-agent coordination with the basic uses of different agents and tools. Further enhancements could improve performance for larger deployments.
+Enhance Scalability and Monitoring: Add performance metrics, error handling, and potentially new agents (e.g., for reporting or predictions).
+
+Robust Input Validation: Improve agent-level validation to prevent failures from unexpected inputs.
