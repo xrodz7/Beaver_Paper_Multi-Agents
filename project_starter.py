@@ -888,16 +888,77 @@ def quote_agent_tool(request: str) -> str:
 
 @tool
 def sales_agent_tool(request: str) -> str:
-    """Delegates sales/order placement requests to the sales agent.
-    
+    """
+    Processes and finalizes a sales order.
+
+    This tool extracts the item name, quantity, and request date from
+    the natural language input. It validates inventory availability,
+    calculates total price based on unit price, and creates a sales
+    transaction which updates both inventory and cash balance.
+
     Args:
-        request (str): The instruction or query for the sales agent.
-                       Example: "Finalize an order for 200 units of cardstock."
+        request (str):
+            A customer order request in natural language format.
+            Must include:
+            - Item name (matching catalog)
+            - Quantity
+            - Date in format: "Date of request: YYYY-MM-DD"
+
+            Example:
+            "I would like 200 A4 paper (Date of request: 2025-01-04)"
 
     Returns:
-        str: Response from the sales agent, e.g., transaction confirmation or stock errors.
+        str:
+            Success message if transaction is completed:
+                "Transaction completed successfully. ID: <transaction_id>"
+
+            Error message if:
+                - No valid date is found
+                - No quantity is specified
+                - Item is not found in catalog
+                - Item is unavailable
+                - Insufficient inventory
     """
-    return sales_agent.run(request)
+
+    import re
+
+    # Extract date
+    date_match = re.search(r"Date of request:\s*(\d{4}-\d{2}-\d{2})", request)
+    if not date_match:
+        return "Error: No valid request date found."
+    as_of_date = date_match.group(1)
+
+    # Extract quantity
+    qty_match = re.search(r"(\d+)", request)
+    if not qty_match:
+        return "Error: No quantity specified."
+    quantity = int(qty_match.group(1))
+
+    # Extract item name
+    item_name = None
+    for item in paper_supplies:
+        if item["item_name"].lower() in request.lower():
+            item_name = item["item_name"]
+            break
+
+    if not item_name:
+        return "Error: Item not found in catalog."
+
+    # Retrieve unit price
+    inventory_df = pd.read_sql(
+        "SELECT unit_price FROM inventory WHERE item_name = :item",
+        db_engine,
+        params={"item": item_name},
+    )
+
+    if inventory_df.empty:
+        return f"{item_name} is not available."
+
+    unit_price = inventory_df["unit_price"].iloc[0]
+    total_price = unit_price * quantity
+
+    # Create transaction
+    return transaction_tool(item_name, quantity, total_price, as_of_date)
 
 
 # Run your test scenarios by writing them here. Make sure to keep track of them.
@@ -913,12 +974,19 @@ orchestrator = ToolCallingAgent(
     name="orchestrator",
     description=(
         "You are the central orchestrator for Beaver's Choice Paper Company. "
-        "Your job is to analyze customer requests and determine which specialized "
-        "agent should handle the request. "
-        "If the request involves stock availability or delivery timelines, use inventory_agent_tool. "
-        "If the request involves pricing or quotes, use quote_agent_tool. "
-        "If the request involves confirming or placing an order, use sales_agent_tool. "
-        "Return the final response from the selected agent."
+        "You must carefully analyze the customer's intent.\n\n"
+
+        "If the customer is asking for a price or comparison, use quote_agent_tool.\n"
+
+        "If the customer is asking about stock availability or delivery timelines, use inventory_agent_tool.\n"
+
+        "If the customer is requesting to buy, order, purchase, or obtain items in a specific quantity, "
+        "you MUST treat it as a finalized order and use sales_agent_tool.\n\n"
+
+        "Any request that includes a quantity of items to be supplied should be treated as a sales order "
+        "unless the user explicitly says they only want a quote.\n\n"
+
+        "Return only the final response from the selected agent."
     ),
 )
 
